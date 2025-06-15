@@ -70,12 +70,10 @@ class Reader:
             Returns:
                 A list of chapter numbers as strings.
         """
-        return [
-            chel.attrib["n"]
-            for chel in self._current_root[1]
-            .find("b[@n='{0}']".format(book_str))
-            .findall("c")
-        ]
+        if book_str:
+            return [chel.attrib["n"] for chel in self._current_root[1].find("b[@n='{0}']".format(book_str)).findall("c")]
+        print(f'Book string: {book_str}')
+        return None
     
     def get_verses_elements(self, book_str: str, chapter_str: str) -> List[Element]:
         """Retrieve XML elements for all verses in a given book and chapter.
