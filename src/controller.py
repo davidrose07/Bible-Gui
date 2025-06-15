@@ -28,10 +28,7 @@ class Controller(QMainWindow, Ui_MainWindow):
 
     def setUpActions(self):
         self.toggleButton.clicked.connect(self.collapse_sidebar)
-        self.listTranslations.currentItemChanged.connect(self.current_translation)
-        self.listBooks.currentItemChanged.connect(self.current_book)
-        self.listChapters.currentItemChanged.connect(self.current_chapter)
-        self.listVerses.currentItemChanged.connect(self.display_verse_text)
+        #TODO: Add events to change sidebar options and verse text when another selection has been made
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFocus()
 
@@ -65,43 +62,15 @@ class Controller(QMainWindow, Ui_MainWindow):
             self.sidebarContainer.setMaximumWidth(200)
 
     def display_verse_text(self, item):
-        verse_number = item.text()
+        #TODO: populate all verses from currently selected verse(default to first verse) till the end of the currently selected chapter(default chapter 1)
+        pass
 
-        if hasattr(self, "book_name") and hasattr(self, "chapter") and self.book_name and self.chapter:
-            # Get all verses in the chapter
-            all_verses = self.reader.get_verses(self.book_name, self.chapter)
-
-            # Find the starting index (0-based)
-            try:
-                start_index = all_verses.index(verse_number)
-            except ValueError:
-                self.textArea.setText("Verse not found in chapter.")
-                return
-
-            # Get all verses from selected verse to end
-            verses_to_display = all_verses[start_index:]
-
-            # Get the text for each verse
-            text_parts = []
-            for verse in verses_to_display:
-                verse_text = self.reader.get_verse_text(self.book_name, self.chapter, verse)
-                text_parts.append(f"{verse} {verse_text}")
-
-            # Display in textArea
-            self.textArea.setText("\n".join(text_parts))
-        else:
-            self.textArea.setText("Book or chapter not selected.")
-
-
-    def current_translation(self):
-        self.translation = self.listTranslations.currentItem().text()
-    
-    def current_book(self):
-        self.book_name = self.listBooks.currentItem().text()
-    
-    def current_chapter(self):
-        self.chapter = self.listChapters.currentItem().text()
-              
+    def get_current_selections(self):
+        self.current_translation = self.listTranslations.currentItem().text()
+        self.current_book = self.listBooks.currentItem().text()
+        self.current_chapter = self.listChapters.currentItem().text()
+        self.current_verse = self.listVerses.currentItem().text()
+                          
     def populate_sidebar(self):
         self.translations = make_enumeration(self.reader.get_translations())
         self.books = make_enumeration(self.reader.get_books())
@@ -117,6 +86,8 @@ class Controller(QMainWindow, Ui_MainWindow):
         if chapter_number:
             self.verses = make_enumeration(self.reader.get_verses(book_name, chapter_number))
             
+
+    def add_sidebar_items(self):
         # Clear the widgets before adding new items
         self.listTranslations.clear()
         self.listBooks.clear()
