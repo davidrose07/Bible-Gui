@@ -19,7 +19,7 @@ linux_setup_scripts/
 .eggs/
 
 # Logs and output
-*.log
+*.log*
 
 
 # Installer logs
