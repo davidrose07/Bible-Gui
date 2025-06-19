@@ -1,30 +1,48 @@
-from PyQt5.QtCore import Qt, QSize, QItemSelectionModel
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtWidgets import *
-from PyQt5.QtWidgets import QStyledItemDelegate
-from .view import *
+from PyQt5.QtCore import Qt, QSize, QModelIndex, QItemSelectionModel
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QKeyEvent
+from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QStyleOptionViewItem, QStyledItemDelegate, QAbstractItemView, QListView, QListWidget,QListWidgetItem
+from .view import Ui_MainWindow
 from .reader import Reader
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
 def make_enumeration(list_: List[str]) -> List[Tuple[int, str]]:
+    """
+    Enumerates a list of strings into a list of (index, value) tuples.
+
+    :param list_: List of strings to enumerate.
+    :return: List of indexed tuples.
+    """
     return list(enumerate(list_))
 
-
 class WrappingDelegate(QStyledItemDelegate):
-    def sizeHint(self, option, index):
+    """
+        Adjusts the size hint for each item to allow wrapping.
+
+        :param option: Style option.
+        :param index: Model index.
+        :return: Adjusted QSize object.
+    """
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         size = super().sizeHint(option, index)
         size.setHeight(size.height() * 2)  # Adjust as needed
         return size
 
 class VerseItemDelegate(QStyledItemDelegate):
-    def sizeHint(self, option, index):
-        # Reduce the height of each row for compact display
-        size = super().sizeHint(option, index)
-        return QSize(size.width(), max(18, size.height() - 6))  # minimum of 18 pixels
+    """
+        Reduces the height of each item for a more compact display.
 
+        :param option: Style option.
+        :param index: Model index.
+        :return: QSize with adjusted height.
+    """
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
+        size = super().sizeHint(option, index)
+        return QSize(size.width(), max(18, size.height() - 6))
 
 class Controller(QMainWindow, Ui_MainWindow):
+    """Main Controller class handling Bible UI behavior and navigation."""
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
@@ -34,11 +52,9 @@ class Controller(QMainWindow, Ui_MainWindow):
 
         self.textAreaModel = QStandardItemModel()
         self.textArea.setModel(self.textAreaModel)
+
         self.textArea.setSelectionMode(QAbstractItemView.SingleSelection)
         self.textArea.setSelectionBehavior(QAbstractItemView.SelectRows)
-
-
-        # Ensure wrapping and proper item sizing in QListView
         self.textArea.setViewMode(QListView.ListMode)
         self.textArea.setWrapping(True)
         self.textArea.setWordWrap(True)
@@ -53,18 +69,22 @@ class Controller(QMainWindow, Ui_MainWindow):
 
         self.show()
 
-    def setUpActions(self):
+    def setUpActions(self) -> None:
+        """Connect buttons and list signals to handlers"""
         self.toggleButton.clicked.connect(self.collapse_sidebar)
-
         self.listTranslations.currentItemChanged.connect(self.on_translation_selected)
         self.listBooks.currentItemChanged.connect(self.on_book_selected)
         self.listChapters.currentItemChanged.connect(self.on_chapter_selected)
         self.listVerses.currentItemChanged.connect(self.display_verse_text)
-
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFocus()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """
+        Handle keyboard arrow key navigation across widgets.
+
+        :param event: QKeyEvent instance.
+        """
         current_index = self.stackedWidget.currentIndex()
         total_pages = self.stackedWidget.count()
         focused_widget = QApplication.focusWidget()
@@ -98,18 +118,29 @@ class Controller(QMainWindow, Ui_MainWindow):
         else:
             super().keyPressEvent(event)
 
-
-    def collapse_sidebar(self):
+    def collapse_sidebar(self) -> None:
+        """Toggle the sidebar to collapse or expand"""
         current_width = self.sidebarContainer.width()
-        self.sidebarContainer.setMaximumWidth(5 if current_width > 5 else 200)
+        if current_width == 5:
+            self.toggleButton.setText("<<")
+        else:
+            self.toggleButton.setText(">>")
+        self.sidebarContainer.setMaximumWidth(5 if current_width > 5 else 200) # 5 is the minimum width
 
-    def populate_translations(self):
+    def populate_translations(self) -> None:
+        """Load the translations into the sidebar menu"""
         self.translations = make_enumeration(self.reader.get_translations())
         self.listTranslations.clear()
         for _, item in self.translations:
             self.listTranslations.addItem(item)
 
-    def on_translation_selected(self, current, previous):
+    def on_translation_selected(self, current: Optional[QListWidgetItem], previous: Optional[QListWidgetItem]) -> None:
+        """
+        Handle translation selection and populate books accordingly.
+
+        :param current: Currently selected item.
+        :param previous: Previously selected item.
+        """
         if current:
             self.reader.set_root(current.text())
             self.listBooks.clear()
@@ -119,13 +150,20 @@ class Controller(QMainWindow, Ui_MainWindow):
             self.populate_books()
             self.listBooks.setCurrentRow(0)
 
-    def populate_books(self):
+    def populate_books(self) -> None:
+        """Load books into sidebar menu"""
         self.books = make_enumeration(self.reader.get_books())
         self.listBooks.clear()
         for _, book in self.books:
             self.listBooks.addItem(book)
 
-    def on_book_selected(self, current, previous):
+    def on_book_selected(self, current: Optional[QListWidgetItem], previous: Optional[QListWidgetItem]) -> None:
+        """
+        Handle book selection and populate chapters.
+
+        :param current: Currently selected item.
+        :param previous: Previously selected item.
+        """
         if current:
             self.book_name = current.text()
             self.listChapters.clear()
@@ -134,14 +172,25 @@ class Controller(QMainWindow, Ui_MainWindow):
             self.populate_chapters(self.book_name)
             self.listChapters.setCurrentRow(0)
 
-    def populate_chapters(self, book_name: str):
+    def populate_chapters(self, book_name: str) -> None:
+        """
+        Populate the chapters list for the selected book.
+
+        :param book_name: Name of the selected book.
+        """
         self.chapters = make_enumeration(self.reader.get_chapters(book_name))
         self.chapter_number = self.chapters[0][1] if self.chapters else "1"
 
         for _, chapter in self.chapters:
             self.listChapters.addItem(chapter)
 
-    def on_chapter_selected(self, current, previous):
+    def on_chapter_selected(self, current:Optional[QListWidgetItem], previous: Optional[QListWidgetItem]) -> None:
+        """
+        Handle chapter selection and populate verses.
+
+        :param current: Currently selected item.
+        :param previous: Previously selected item.
+        """
         if current:
             self.chapter_number = current.text()
             self.listVerses.clear()
@@ -149,12 +198,23 @@ class Controller(QMainWindow, Ui_MainWindow):
             self.populate_verses(self.book_name, self.chapter_number)
             self.listVerses.setCurrentRow(0)
 
-    def populate_verses(self, book: str, chapter: str):
+    def populate_verses(self, book: str, chapter: str) -> None:
+        """
+        Load verses into sidebar menu
+        
+        :param book: Name of the selected book
+        :param chapter: Selected chapter number
+        """
         self.verses = make_enumeration(self.reader.get_verses(book, chapter))
         for _, verse in self.verses:
             self.listVerses.addItem(verse)
 
-    def display_verse_text(self, item):
+    def display_verse_text(self, item: QListWidgetItem) -> None:
+        """
+        Displays the verse text starting from the selected verse to the end of the chapter.
+
+        :param item: QListWidgetItem containing the selected verse number.
+        """
         try:
             verse_number = int(item.text()) if item else 1
             book = self.listBooks.currentItem().text() if self.listBooks.currentItem() else self.books[0][1]
