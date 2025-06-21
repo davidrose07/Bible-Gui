@@ -102,6 +102,7 @@ if "%errorlevel%" NEQ "0" (
 )
 
 echo 🛠️ Installing package from setup.py...
+pip install -r requirements.txt
 python setup.py install
 if "%errorlevel%" NEQ "0" (
     echo ❌ setup.py failed.
@@ -141,7 +142,7 @@ for /f %%i in ('python %TEMP%\_check_curses.py') do (
 del %TEMP%\_check_curses.py
 
 echo ✅ Local setup complete. Run your app with:
-echo    python -m your_module_name
+echo    bible-gui
 goto end
 
 :end
