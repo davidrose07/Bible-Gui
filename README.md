@@ -67,6 +67,7 @@ source venv/bin/activate
 Install in editable mode:
 
 ```bash
+pip install -r requirements.txt
 pip install -e .
 ```
 
